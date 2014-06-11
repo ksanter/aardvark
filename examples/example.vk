@@ -1,0 +1,289 @@
+;quiz language
+
+
+(define linear-op-term
+	(lambda (type)
+		(terms
+			(op+
+				(op*
+					(const type)
+					(var 'x)
+				)
+				(const type)
+			)
+		)
+	)
+)
+
+(linear-op-term (integer))
+
+
+;expression
+(define y-equals-mx-plus-b
+	(expression
+		(equality)
+		(terms
+			(lh
+				(var 'y)
+			)
+			(rh
+				(const (integer))
+				(var 'x)
+				(random-permute (op+) (op-))
+				(const (integer))
+			)
+		)
+	)
+)
+
+;expression2
+
+(define axsq-plus-bx-plus-c
+	(expression
+		(equality)
+		(terms
+			(lh
+				0
+			)
+			(rh
+				(pow
+					(var 'x)
+					2
+				)
+				(op+)
+				(const (integer))
+				(op*)
+				(var 'x)
+				(op+)
+				(const (integer))
+			)
+		)	
+	)
+)
+
+;issue:
+; which of these is preferable?
+; mx+b
+
+(op+
+	(op*
+		(const (integer))
+		(var 'x)
+	)
+	(const (integer))
+)
+
+; ax^2 + bx + c
+
+
+(define body
+	(terms
+		(oppow
+			(var 'x)
+			2
+			)
+		(op*
+			(const (integer))
+			(var 'x)
+		)
+		(const (integer))
+	)
+)
+
+(apply
+	(permute
+		'op+
+		'op+
+		'op-
+	)
+	(terms
+		(body)
+		(const (integer))
+	)
+)
+
+;question
+
+(define question-1
+	(question
+		(ask "Solve for " (get y-equals-mx-plus-b 'x))
+		(ask "	
+		(y-equals-mx-plus-b)
+	)
+)
+
+;quiz
+
+(quiz
+	(repeat
+		6
+		(question-1)
+	)
+)
+
+
+(expression
+	(equality)
+	(lh
+		(op+
+			(op*
+				(const (permute integer fraction))
+				(var 'x)
+			)
+			(op*
+				(const (integer) (positive))
+				(parens
+					(mx-plus-b)
+				)
+			)
+		)
+	)
+	(rh
+		;blah
+	)
+)
+				
+(define nterms
+	(let (x (terms))
+		(repeat
+			(permute 0 1 2 3 4 5)
+			(cons
+				(op*
+					(const (integer))
+					(var 'x)
+				)
+				x
+			)
+		)
+		x
+	)
+)
+
+
+; two intersection lines that intersect between +/- 10
+
+
+(let
+	(
+		(x (random-integer -10 10))
+		(y (random-integer -10 10))
+		(m1 (random -100 100))
+		(m2 (random -100 100))
+	)
+	
+	(system
+		(expression
+			(equality)
+			(lh
+				(var 'y1)
+			)
+			(rh
+				(op+
+					(op*
+						m1
+						(var 'x1)
+					)
+					(-
+						y
+						(*
+							x
+							m1
+						)
+					)
+				)
+			)
+		)
+		(expression
+			(equality)
+			(lh
+				(var 'y2)
+			)
+			(rh
+				(op+
+					(op*
+						m2
+						(var 'x2)
+					)
+					(-
+						y
+						(*
+							x
+							m2
+						)
+					)
+				)
+			)
+		)
+	)
+)	
+
+
+;question syntax
+
+;arbitrary quadratic
+
+
+(define ax2-plus-bx-plus-c
+	(expression
+		(equality)
+		(terms
+			(op+
+				(op*
+					(const (integer) (bind 'a))
+					(var (bind 'x))
+				)
+				(op*
+					(const (integer) (bind 'b))
+					(var (bind 'x))
+				)
+				(const (integer) (bind 'c))
+			)
+		)
+	)
+)
+
+(define qform
+	(lambda (a b c)
+		(let
+			(
+				(d
+					(sqrt
+						(-
+							(pow
+								a
+								2
+							)
+							(*
+								4
+								a
+								c
+							)
+						)
+					)
+				)
+			)
+			(cons
+				(+
+					b
+					d
+				)
+				(-
+					b
+					d
+				)
+			)
+		)
+	)
+)
+
+(define q1
+	(question
+		(ask "Find the x-intercept")
+		(let ((e (new (ax2-plus-bx-plus-c))))
+			(set! 'answer
+				(qform (get e 'a) (get e 'b) (get e 'c))
+			)
+			e
+		)
+	)
+)

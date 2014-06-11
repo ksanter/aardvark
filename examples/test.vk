@@ -1,0 +1,23 @@
+;quiz language
+
+
+(define y-equals-mx-plus-b
+  (expression
+    (equality)
+    (terms
+      (variable (bind 'y))
+    )
+    (terms
+      (op+
+        (op*
+          (constant integer)
+          (variable (bind 'x))
+        )
+        (constant integer)
+      )
+    )
+  )
+)
+
+(display y-equals-mx-plus-b)
+      
