@@ -19,5 +19,29 @@
   )
 )
 
-(display y-equals-mx-plus-b)
-      
+(print (expression-bindings y-equals-mx-plus-b))
+(print (bound-term-ident (caar (expression-bindings y-equals-mx-plus-b))))
+
+
+(define t
+  (terms
+    ((random-permute op+ op-)
+      (constant integer)
+      ((random-permute op* op/)
+        (variable)
+        (variable)
+      )
+    )
+  )
+)
+
+(define exp2
+  (expression
+    (equality)
+    t
+    (terms ((random-permute op+ op+ op-) (constant integer)))
+  )
+)
+
+(print (expression-plist exp2))
+(print (expression-pnum exp2))
