@@ -1,11 +1,13 @@
 (declare (unit defs))
 
+(use extras)
+
 (define-record num-type type)
 (define-record expr-type type)
 (define-record bound-term ident)
 
 (define-record term-const binding range)
-(define-record term-var binding)
+(define-record term-var binding range)
 (define-record term-op op operands)
 (define-record permutation forms body type)
 
@@ -13,6 +15,9 @@
 (define-record expression type lh rh bindings plist)
 
 (define-record instance expr vals properties)
+
+(define default-constant-range (cons -32 32))
+(define default-variable-range '(a b c d e f g h i j k l m n o p q r s t u v w x y z))
 
 (define flatten
   (lambda (l)
@@ -30,6 +35,12 @@
       #t
       (and (car l) (list-true? (cdr l)))
     )
+  )
+)
+
+(define choose-from-list
+  (lambda (l)
+    (list-ref l (random (length l)))
   )
 )
 
@@ -89,11 +100,14 @@
 )
 
 (define variable
-  (lambda (#!optional binding)
+  (lambda (#!optional binding range)
     (if binding
-      (aql-assert (bound-term? binding) "expected binding as argument to variable")
+      (aql-assert (bound-term? binding) "expected binding as first argument to variable")
     )
-    (make-term-var binding)
+    (if range
+      (aql-assert (list? range) "expected list as second argument to variable")
+    )
+    (make-term-var binding range)
   )
 )
 
@@ -411,6 +425,59 @@
   )
 )
 
+(define generate-constant
+  (lambda (c)
+    (assert (term-const? c) "expected constant term as argument to generate-constant")
+    (let* ((r (term-const-range c))
+           (rmin (if r (car r) (car default-constant-range)))
+           (rmax (if r (cdr r) (cdr default-constant-range))))
+      (cons
+        (+ rmin (random (- rmax rmin)))
+        ((lambda (b) (if b (bound-term-ident b) #f)) (term-const-binding c))
+      )
+    )
+  )
+)
+
+(define generate-variable
+  (lambda (v)
+    (assert (term-var? v) "expected variable term as argument to generate-variable")
+    (cons
+      (if (term-var-range v)
+        (choose-from-list (term-var-range v))
+        (choose-from-list default-variable-range)
+      )
+      ((lambda (b) (if b (bound-term-ident b) #f)) (term-var-binding v))
+    )
+  )
+)
+
+(define generate
+  (lambda (expr)
+    (assert (expression? expr) "expected expression as argument to generate")
+    (letrec
+      ((gen
+         (lambda (tlist vals)
+           (if (eqv? tlist '())
+             vals
+             (let ((term (car tlist)))
+               (cond
+                 ((term-const? term)
+                  (gen (cdr tlist) (cons (generate-constant term) vals)))
+                 ((term-var? term)
+                  (gen (cdr tlist) (cons (generate-variable term) vals)))
+                 ((term-op? term)
+                  (gen (cdr tlist) (cons (cons (term-op-op term) (gen (term-op-operands term) '())) vals)))
+                 (else (gen (cdr tlist) (cons '? vals)))
+               )
+             )
+           )
+         )
+      ))
+      (make-instance expr (cons (gen (term-list-l (expression-rh expr)) '()) (gen (term-list-l (expression-lh expr)) '())) '())
+    )
+  )
+)
 
 
 

@@ -93,3 +93,19 @@
 )
 
 (print (extract-expression (resolve-permutations exp3 0)))
+
+
+
+(define exp4
+  (expression
+    (equality)
+    (terms
+      ((random-permute (op+ (constant integer) (variable)) (op- (variable) (variable) (variable))))
+    )
+    (terms
+      (constant integer #f 0)
+    )
+  )
+)
+
+(define i (generate y-equals-mx-plus-b))
