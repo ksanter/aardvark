@@ -14,6 +14,16 @@
 
 (define-record instance expr vals properties)
 
+(define flatten
+  (lambda (l)
+    (cond
+      ((null? l) '())
+      ((pair? l) (append (flatten (car l)) (flatten (cdr l))))
+      (else (list l))
+    )
+  )
+)
+
 (define try
   (lambda (t #!optional handle)
     (handle-exceptions
@@ -122,7 +132,7 @@
 
 (define op*
   (lambda (#!rest opers)
-    (make-term-op '- opers)
+    (make-term-op '* opers)
   )
 )
 
@@ -213,14 +223,15 @@
             (cond
               ((permutation? term) (loop 
                                      (let ((subpl (permutation-list term)))
-                                       (if (eqv? subpl '())
-                                         (cons (list (length (permutation-forms term))) p)
-                                         (cons (cons (length (permutation-forms term)) subpl) p)
-                                       )
+;                                       (if (eqv? subpl '())
+;                                         (cons (list (length (permutation-forms term))) p)
+;                                         (cons (cons (length (permutation-forms term)) subpl) p)
+;                                       )
+                                       (cons (cons (length (permutation-forms term)) subpl) p)
                                      )
                                      (cdr tlist)
-                                    ))
-              ((term-op? term) (loop (cons (permutation-list term) p) (cdr tlist)))
+                                   ))
+              ((term-op? term) (loop (cons (list (permutation-list term)) p) (cdr tlist)))
               (else (loop p (cdr tlist)))
             )
           )
@@ -232,19 +243,7 @@
 
 (define expression-pnum
   (lambda (expr)
-    (letrec ((flatten
-               (lambda (l)
-                 (cond
-                   ((null? l) '())
-                   ((pair? l) (append (flatten (car l)) (flatten (cdr l))))
-                   (else (list l))
-                 )
-               )
-            ))
-      (let ((flat (flatten (expression-plist expr))))
-        (apply * flat)
-      )
-    )
+    (apply * (flatten (expression-plist expr)))
   )
 )
 
@@ -257,7 +256,7 @@
       lh
       rh
       (cons (extract-bindings lh) (extract-bindings rh))
-      (append (permutation-list lh) (permutation-list rh))
+      (cons (permutation-list lh) (permutation-list rh))
     )
   )
 )
@@ -279,7 +278,123 @@
 
 ;(define resolve-permutations
 ;  (lambda (expr n)
-;    (let loop ((tlist (append (expression-lh expr) (expression-rh expr))))
+;    (let loop ((res '()) (tlist (append (term-list-l (expression-lh expr)) (term-list-l (expression-rh expr)))) (pl (expression-plist expr)) (i n))
+;      (if (eqv? tlist '())
+;        res
+;        (let ((term (car tlist)))
+;          (cond
+;            ((permutation? term) (loop
+;                                   (cons
+;                                     (loop
+;                                       '()
+;                                       (list ((list-ref (permutation-forms term) (modulo i (caar pl))) (permutation-body term)))
+;                                       (car pl)
+;                                       (quotient i (caar pl))
+;                                     )
+;                                     res
+;                                   )
+;                                   (cdr tlist)
+;                                   (cdr pl)
+;                                   (quotient i (apply * (flatten (car pl))))
+;                                 ))
+;            ((term-op? term) (loop
+;                               (cons
+;                                 (make-term-op
+;                                   (term-op-op term)
+;                                   (loop
+;                                     '()
+;                                     (term-op-operands term)
+;                                     pl
+;                                     i
+;                                   )
+;                                 )
+;                                 res
+;                               )
+;                               (cdr tlist)
+;                               pl
+;                               i
+;                            ))
+;            (else (loop (cons term res) (cdr tlist) pl i))
+;          )
+;        )
+;      )
+;    )
+;  )
+;)
+;
+
+(define resolve-permutations
+  (lambda (expr n)
+    (letrec
+       ((loop
+         (lambda (res tlist pl i)
+           (if (eqv? tlist '())
+             res
+             (let ((term (car tlist)))
+               (cond
+                 ((permutation? term) (let
+                                        ((t (list-ref (permutation-forms term) (modulo i (caar pl))))
+                                         (r (loop '() (permutation-body term) (cdar pl) (quotient i (caar pl)))))
+                                        (loop
+                                          (cons
+                                            (apply t r)
+                                            res
+                                          )
+                                          (cdr tlist)
+                                          (cdr pl)
+                                          (quotient i (apply * (flatten (car pl))))
+                                        )
+                                      ))
+                 ((term-op? term) (let
+                                    ((r (loop '() (term-op-operands term) (car pl) i)))
+                                    (loop
+                                      (cons
+                                        (make-term-op (term-op-op term) r)
+                                        res
+                                      )
+                                      (cdr tlist)
+                                      (cdr pl)
+                                      (quotient i (let ((flat (flatten (car pl)))) (if (eqv? flat '()) 1 (apply * flat))))
+                                    )
+                                  ))
+                 (else (loop (cons term res) (cdr tlist) pl i))
+               )
+             )
+           )
+         )
+       ))
+      (let* ((lh (loop '() (term-list-l (expression-lh expr)) (car (expression-plist expr)) n))
+             (rh (loop '() (term-list-l (expression-rh expr)) (cdr (expression-plist expr)) (quotient n (apply * (flatten (car (expression-plist expr))))))))
+        (make-expression (expression-type expr) (apply terms lh) (apply terms rh) (expression-bindings expr) '())
+      )
+    )
+  )
+)
+
+
+(define extract-expression
+  (lambda (expr)
+    (letrec
+      ((f
+         (lambda (out in)
+           (if (eqv? in '())
+             out
+             (let ((term (car in)))
+               (cond
+                 ((term-const? term) (f (cons (if (term-const-binding term) (cons 'C (term-const-binding term)) 'C) out) (cdr in)))
+                 ((term-var? term) (f (cons (if (term-var-binding term) (cons 'v (term-var-binding term)) 'V) out) (cdr in)))
+                 ((term-op? term) (f (append (list (cons (term-op-op term) (f '() (term-op-operands term)))) out) (cdr in)))
+                 ((permutation? term) (f (append (cons 'P (list (f '() (permutation-body term)))) out) (cdr in)))
+                 ((list? term) (f (append (f '() (list (car term))) (f '() (cdr term)) out) (cdr in)))
+               )
+             )
+           )
+         )
+       ))
+      (append (f '() (term-list-l (expression-lh expr))) (list (expr-type-type (expression-type expr))) (f '() (term-list-l (expression-rh expr))))
+    )
+  )
+)
 
 
 

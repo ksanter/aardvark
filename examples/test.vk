@@ -19,9 +19,24 @@
   )
 )
 
-(print (expression-bindings y-equals-mx-plus-b))
-(print (bound-term-ident (caar (expression-bindings y-equals-mx-plus-b))))
+;(print (expression-bindings y-equals-mx-plus-b))
+;(print (bound-term-ident (caar (expression-bindings y-equals-mx-plus-b))))
 
+
+(define test
+  (expression
+    (equality)
+    (terms
+      ((random-permute op+ op-)
+        (variable)
+        (constant integer)
+      )
+    )
+    (terms
+      (constant integer #f 0)
+    )
+  )
+)
 
 (define t
   (terms
@@ -43,5 +58,21 @@
   )
 )
 
+;(print (expression-plist exp2))
+;(print (expression-pnum exp2))
+
+;(print (extract-expression exp2))
+
+;(print (resolve-permutations exp2 1))
+
+
+(print (extract-expression test))
+(print (expression-plist test))
+(define r (resolve-permutations test 1))
+
+(print (extract-expression exp2))
 (print (expression-plist exp2))
-(print (expression-pnum exp2))
+(define r2 (resolve-permutations exp2 1))
+
+(print (extract-expression r))
+(print (extract-expression r2))
