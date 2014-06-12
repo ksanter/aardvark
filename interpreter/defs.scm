@@ -24,6 +24,15 @@
   )
 )
 
+(define list-true?
+  (lambda (l)
+    (if (eqv? l '())
+      #t
+      (and (car l) (list-true? (cdr l)))
+    )
+  )
+)
+
 (define try
   (lambda (t #!optional handle)
     (handle-exceptions
@@ -231,7 +240,7 @@
                                      )
                                      (cdr tlist)
                                    ))
-              ((term-op? term) (loop (cons (list (permutation-list term)) p) (cdr tlist)))
+              ((term-op? term) (loop (cons (permutation-list term) p) (cdr tlist)))
               (else (loop p (cdr tlist)))
             )
           )
@@ -265,7 +274,7 @@
   (lambda (type)
     (lambda (#!rest forms)
       (lambda (#!rest body)
-        (aql-assert (valid-tlist? body) "expect series of term objects as body of permutation")
+        (assert (or (list-true? (map procedure? forms)) (list-true? (map term-object? forms))) "expected a series of procedures or a series of term objects as argument to permutation")
         (make-permutation forms body type)
       )
     )
@@ -337,7 +346,13 @@
                                          (r (loop '() (permutation-body term) (cdar pl) (quotient i (caar pl)))))
                                         (loop
                                           (cons
-                                            (apply t r)
+                                            (if (procedure? t)
+                                              (let ((b (apply t r)))
+                                                (assert (valid-tlist? b) "expected permutation body to resolve to list of terms")
+                                                b
+                                              )
+                                              t
+                                            )
                                             res
                                           )
                                           (cdr tlist)

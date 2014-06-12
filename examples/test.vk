@@ -66,13 +66,30 @@
 ;(print (resolve-permutations exp2 1))
 
 
-(print (extract-expression test))
-(print (expression-plist test))
-(define r (resolve-permutations test 1))
+;(print (extract-expression test))
+;(print (expression-plist test))
+;(define r (resolve-permutations test 1))
 
-(print (extract-expression exp2))
-(print (expression-plist exp2))
-(define r2 (resolve-permutations exp2 1))
+;(print (extract-expression exp2))
+;(print (expression-plist exp2))
+;(define r2 (resolve-permutations exp2 1))
 
-(print (extract-expression r))
-(print (extract-expression r2))
+;(print (extract-expression r))
+;(print (extract-expression r2))
+
+(define exp3
+  (expression
+    (equality)
+    (terms
+      (op+
+        ((random-permute (constant integer) (variable)))
+        (constant integer)
+      )
+    )
+    (terms
+      (constant integer)
+    )
+  )
+)
+
+(print (extract-expression (resolve-permutations exp3 0)))
