@@ -2,7 +2,7 @@
 
 
 (define y-equals-mx-plus-b
-  (expression
+  (equation
     (equality)
     (terms
       (variable (bind 'y))
@@ -19,12 +19,8 @@
   )
 )
 
-;(print (expression-bindings y-equals-mx-plus-b))
-;(print (bound-term-ident (caar (expression-bindings y-equals-mx-plus-b))))
-
-
 (define test
-  (expression
+  (equation
     (equality)
     (terms
       ((random-permute op+ op-)
@@ -51,34 +47,15 @@
 )
 
 (define exp2
-  (expression
+  (equation
     (equality)
     t
     (terms ((random-permute op+ op+ op-) (constant integer)))
   )
 )
 
-;(print (expression-plist exp2))
-;(print (expression-pnum exp2))
-
-;(print (extract-expression exp2))
-
-;(print (resolve-permutations exp2 1))
-
-
-;(print (extract-expression test))
-;(print (expression-plist test))
-;(define r (resolve-permutations test 1))
-
-;(print (extract-expression exp2))
-;(print (expression-plist exp2))
-;(define r2 (resolve-permutations exp2 1))
-
-;(print (extract-expression r))
-;(print (extract-expression r2))
-
 (define exp3
-  (expression
+  (equation
     (equality)
     (terms
       (op+
@@ -92,12 +69,16 @@
   )
 )
 
-(print (extract-expression (resolve-permutations exp3 0)))
+(print (extract-raw exp3))
+(print (extract-raw (resolve-permutations exp3 0)))
+(print (extract-raw (resolve-permutations exp3 1)))
 
-
+(newline)
+(print (extract-raw t))
+(print (extract-raw (resolve-permutations t 0)))
 
 (define exp4
-  (expression
+  (equation
     (equality)
     (terms
       ((random-permute (op+ (constant integer) (variable)) (op- (variable) (variable) (variable))))
@@ -108,4 +89,6 @@
   )
 )
 
-(define i (generate y-equals-mx-plus-b))
+(print (extract-raw (terms (op+ (constant integer) (variable)))))
+
+;(define i (generate y-equals-mx-plus-b))
