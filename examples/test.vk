@@ -37,7 +37,7 @@
 (define t
   (terms
     ((random-permute op+ op-)
-      (constant integer)
+      (constant integer (bind 'a))
       ((random-permute op* op/)
         (variable)
         (variable)
@@ -69,13 +69,15 @@
   )
 )
 
-(print (extract-raw exp3))
-(print (extract-raw (resolve-permutations exp3 0)))
-(print (extract-raw (resolve-permutations exp3 1)))
+(print (extract-output t))
+(define res (resolve-permutations t 0))
+(print (extract-output res))
+(define g (generate (term-list-l res)))
+(print g)
+(define v (value-list g))
+(print v)
+(print (vl-get 'a v))
 
-(newline)
-(print (extract-raw t))
-(print (extract-raw (resolve-permutations t 0)))
 
 (define exp4
   (equation
@@ -89,6 +91,4 @@
   )
 )
 
-(print (extract-raw (terms (op+ (constant integer) (variable)))))
 
-;(define i (generate y-equals-mx-plus-b))

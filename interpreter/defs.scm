@@ -14,6 +14,8 @@
 (define-record term-list l)
 (define-record equation type lh rh)
 
+(define-record question obj fns properties)
+
 ;(define-record instance expr vals properties)
 
 (define default-constant-range (cons -32 32))
@@ -118,6 +120,12 @@
 (define term-object?
   (lambda (t)
     (or (term-const? t) (term-var? t) (term-op? t) (permutation? t))
+  )
+)
+
+(define expr-object?
+  (lambda (t)
+    (or (term-list? t) (equation? t))
   )
 )
 
@@ -349,7 +357,7 @@
        ((loop
          (lambda (res tlist pl i)
            (if (eqv? tlist '())
-             res
+             (reverse res)
              (let ((term (car tlist)))
                (cond
                  ((permutation? term) (let
@@ -380,7 +388,8 @@
                                       )
                                       (cdr tlist)
                                       (cdr pl)
-                                      (quotient i (let ((flat (flatten (car pl)))) (if (eqv? flat '()) 1 (apply * flat))))
+;                                      (quotient i (let ((flat (flatten (car pl)))) (if (eqv? flat '()) 1 (apply * flat))))
+                                      (quotient i (apply * (flatten (car pl))))
                                     )
                                   ))
                  (else (loop (cons term res) (cdr tlist) pl i))
@@ -406,7 +415,7 @@
   )
 )
 
-(define extract-raw
+(define extract-output
   (lambda (obj)
     (letrec
       ((f
@@ -419,7 +428,8 @@
                  ((term-var? term) (f (cons (if (term-var-binding term) (cons 'v (term-var-binding term)) 'V) out) (cdr in)))
 ;                 ((term-op? term) (f (append (list (cons (term-op-op term) (f '() (term-op-operands term)))) out) (cdr in)))
                  ((term-op? term) (f (cons (cons (term-op-op term) (f '() (term-op-operands term))) out) (cdr in)))
-                 ((permutation? term) (f (append (let ((sub (list (f '() (permutation-body term))))) (if (eqv? sub '()) (cons 'P (list sub)) (list 'P))) out) (cdr in)))
+                 ((permutation? term) (f (cons (let ((sub (f '() (permutation-body term)))) (if (eqv? sub '()) 'P (cons 'P sub))) out) (cdr in)))
+;                 ((permutation? term) (f (append (let ((sub (list (f '() (permutation-body term))))) (if (eqv? sub '()) (cons 'P (list sub)) (list 'P))) out) (cdr in)))
                  ((list? term) (f (append (f '() (list (car term))) (f '() (cdr term)) out) (cdr in)))
                )
              )
@@ -428,7 +438,7 @@
        ))
       (cond
         ((equation? obj)
-         (append (f '() (term-list-l (equation-lh obj))) (list (eq-type-type (equation-type obj))) (f '() (term-list-l (equation-rh obj)))))
+         (cons (eq-type-type (equation-type obj)) (cons (f '() (term-list-l (equation-lh obj))) (f '() (term-list-l (equation-rh obj))))))
         ((term-list? obj)
          (f '() (term-list-l obj)))
         (else (except "expected equation or term list as argument to extract-raw"))
@@ -437,42 +447,141 @@
   )
 )
 
-;(define generate-constant
-;  (lambda (c)
-;    (assert (term-const? c) "expected constant term as argument to generate-constant")
-;    (let ((r (term-const-range c))
-;          (f (lambda (b) (if b (bound-term-ident b) #f))))
-;      (if (or (eqv? r #f) (pair? r))
+(define question
+  (lambda (obj #!rest props)
+    (assert (expr-object? obj) "expected expression object as first argument to question")
+    (assert (list-true? (map pair? props)) "expected series of pairs as second+ argument to question")
+    (make-question obj props)
+  )
+)
+
+;(define instance
+;  (lambda (obj vals)
+;    (assert (expr-object? obj) "expected expression object as first argument to instance")
+;    (assert (list? vals) "expected list of value pairs as first argument to instance")
+;    (make-instance obj (value-list vals))
+;  )
+;)
+
+(define generate
+  (lambda (tlist)
+    (if (eqv? tlist '())
+      '()
+      (let ((term (car tlist)))
+        (cons
+          (cond
+            ((term-const? term) (generate-constant term))
+            ((term-var? term) (generate-variable term))
+            ((term-op? term) (cons (term-op-op term) (generate (term-op-operands term))))
+          )
+          (generate (cdr tlist))
+        )
+      )
+    )
+  )
+)
+
+(define value-list
+  (lambda (vals)
+    (if (eqv? vals '())
+      '()
+      (cond
+        ((and (pair? (car vals)) (not (list? (car vals)))) (cons (car vals) (value-list (cdr vals))))
+        ((list? (car vals)) (append (value-list (car vals)) (value-list (cdr vals))))
+        (else (value-list (cdr vals)))
+      )
+    )
+  )
+)
+
+(define vl-get
+  (lambda (b vlist)
+    (if (eqv? vlist '())
+      #f
+      (if (eqv? (cdar vlist) b)
+        (caar vlist)
+        (vl-get b (cdr vlist))
+      )
+    )
+  )
+)
+
+;(define resolve-bindings
+;  (lambda (tlist fns)
+;    (letrec
+;      ((gen-vals
+;         (lambda (in)
+;           (if (eqv? 
+;           (cons (cond
+;                   ((
+;       
+;       (res-single
+;         (lambda (out in b fn vals)
+;
+;    (let loop ((out '()) (in '()))
+;    )
+;  )
+;)
+;
+
+;(define ask
+;  (lambda (q #!optional (n 1))
+;    (assert (question? q) "expected question as first argument to ask")
+;    (assert (and (integer? n) (> n 0)) "expected number as second argument to ask")
+;    (letrec
+;      ((f
+;         (lambda (i out in)
+;         )
+;       )
+;       (loop
+;         (lambda (i)
+;         )
+;       ))
+;      (cons (cons 'raw (extract-output (question-obj q))) (loop n))
+;    )
+;            out
 ;        (let
-;          ((rmin (if r (car r) (car default-constant-range)))
-;           (rmax (if r (cdr r) (cdr default-constant-range))))
-;          (cons
-;            (+ rmin (random (- rmax rmin)))
-;            (f (term-const-binding c))
-;          )
-;        )
-;        (cond
-;          ((number? r) (cons r (f (term-const-binding c))))
-;          ((list? r) (cons (choose-from-list r) (f (term-const-binding c))))
-;        )
-;      )
-;    )
+;          ((r (resolve-permutations q i))
+;           (
 ;  )
 ;)
-;
-;(define generate-variable
-;  (lambda (v)
-;    (assert (term-var? v) "expected variable term as argument to generate-variable")
-;    (cons
-;      (if (term-var-range v)
-;        (choose-from-list (term-var-range v))
-;        (choose-from-list default-variable-range)
-;      )
-;      ((lambda (b) (if b (bound-term-ident b) #f)) (term-var-binding v))
-;    )
-;  )
-;)
-;
+
+(define generate-constant
+  (lambda (c)
+    (assert (term-const? c) "expected constant term as argument to generate-constant")
+    (let ((r (term-const-range c))
+          (f (lambda (b) (if b (bound-term-ident b) #f))))
+      (if (or (eqv? r #f) (pair? r))
+        (let
+          ((rmin (if r (car r) (car default-constant-range)))
+           (rmax (if r (cdr r) (cdr default-constant-range))))
+          (cons
+            (+ rmin (random (- rmax rmin)))
+            (f (term-const-binding c))
+          )
+        )
+        (cond
+          ((number? r) (cons r (f (term-const-binding c))))
+          ((list? r) (cons (choose-from-list r) (f (term-const-binding c))))
+        )
+      )
+    )
+  )
+)
+
+(define generate-variable
+  (lambda (v)
+    (assert (term-var? v) "expected variable term as argument to generate-variable")
+    (cons
+      (if (term-var-range v)
+        (choose-from-list (term-var-range v))
+        (choose-from-list default-variable-range)
+      )
+      ((lambda (b) (if b (bound-term-ident b) #f)) (term-var-binding v))
+    )
+  )
+)
+
 ;(define generate
 ;  (lambda (expr)
 ;    (assert (expression? expr) "expected expression as argument to generate")

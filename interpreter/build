@@ -1,1 +1,1 @@
-csc -o aardvark driver.scm defs.scm
+csc -o aardvark driver.scm defs.scm simplify.scm

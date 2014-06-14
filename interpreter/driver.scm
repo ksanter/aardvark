@@ -1,4 +1,5 @@
 (declare (uses defs))
+(declare (uses simplify))
 
 (if
   (equal?
